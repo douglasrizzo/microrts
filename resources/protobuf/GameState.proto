@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+option java_package = "ai.socket.protobuf";
+option java_outer_classname = "GameStateProtobuf";
+
+message unit {
+  string type = 1;
+  int32 ID = 2;
+  int32 player = 3;
+  int32 x = 4;
+  int32 y = 5;
+  int32 resources = 6;
+  int32 hitpoints = 7;
+}
+
+message player {
+  int32 ID = 1;
+  int32 resources = 2;
+}
+
+message PGS {
+  int32 width = 1;
+  int32 height = 2;
+  string terrain = 3;
+  repeated player players = 4;
+  repeated unit units = 5;
+}
+
+message action {
+  int32 type = 1;
+  int32 parameter = 2;
+}
+
+message actions {
+  int32 ID = 1;
+  int32 time = 2;
+  action action = 3;
+}
+
+message state {
+  int32 time = 1;
+  PGS pgs = 2;
+  repeated actions actions = 3;
+}
