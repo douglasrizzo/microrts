@@ -28,8 +28,8 @@ import util.XMLWriter;
  */
 public class Trace {
 
-    UnitTypeTable utt = null;
-    List<TraceEntry> entries = new LinkedList<TraceEntry>();
+    UnitTypeTable utt;
+    List<TraceEntry> entries = new LinkedList<>();
 
     /**
      * Constructs from a UnitTypeTable
@@ -119,17 +119,11 @@ public class Trace {
     }
     
     public void toZip(String path) {
-    	String zipPath;
-    	//zipPath must end with .zip and path with .xml
     	if(path.endsWith(".zip")) {
-    		zipPath = path;
-    		path.replaceFirst("[.][^.]+$", ".xml"); // replaces .zip by .xml
+            path.replaceFirst("[.][^.]+$", ".xml"); // replaces .zip by .xml
     	}
-    	else {
-    		zipPath = path + ".zip";    		
-    	}
-    	
-    	File f = new File(path);
+
+        File f = new File(path);
     	ZipOutputStream out;
 		try {
 			out = new ZipOutputStream(new FileOutputStream(f));
@@ -197,7 +191,7 @@ public class Trace {
     /**
      * this accelerates the function below if traversing a trace sequentially
      */
-    GameState getGameStateAtCycle_cache = null;
+    GameState getGameStateAtCycle_cache;
 
     /**
      * Simulates the game from the from the last cached cycle (initialized as

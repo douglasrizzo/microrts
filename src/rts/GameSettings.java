@@ -29,16 +29,17 @@ public class GameSettings {
     private boolean partiallyObservable = false;
     private int uttVersion = 1;
     private int conflictPolicy = 1;
-    
+
+    private boolean includeConstantsInState = true, compressTerrain = false;
+
     // Opponents:
     private String AI1 = "";
     private String AI2 = "";
-    
 
-    public GameSettings( LaunchMode launchMode, String serverAddress, int serverPort, 
-                          int serializationType, String mapLocation, int maxCycles, 
-                          boolean partiallyObservable, int uttVersion, int confictPolicy, 
-                          String AI1, String AI2) {
+    public GameSettings(LaunchMode launchMode, String serverAddress, int serverPort,
+        int serializationType, String mapLocation, int maxCycles, boolean partiallyObservable,
+        int uttVersion, int confictPolicy, boolean includeConstantsInState, boolean compressTerrain,
+        String AI1, String AI2) {
         this.launchMode = launchMode;
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
@@ -48,6 +49,8 @@ public class GameSettings {
         this.partiallyObservable = partiallyObservable;
         this.uttVersion = uttVersion;
         this.conflictPolicy = confictPolicy;
+        this.includeConstantsInState = includeConstantsInState;
+        this.compressTerrain = compressTerrain;
         this.AI1 = AI1;
         this.AI2 = AI2;
     }
@@ -96,8 +99,85 @@ public class GameSettings {
         return AI2;
     }
 
+    public boolean isIncludeConstantsInState() {
+        return includeConstantsInState;
+    }
+
+    public boolean isCompressTerrain() {
+        return compressTerrain;
+    }
+
     /**
-     * Fetches the default configuration file which will be located in the root direction called "config.properties".
+     * Create a GameSettings object from a list of command-line arguments
+     * @param args a String array containing command-line arguments
+     */
+    public GameSettings(String[] args) {
+        overrideFromArgs(args);
+    }
+
+    /**
+     * Use a list of command-line arguments to replace the attribute values of the current
+     * GameSettings
+     *
+     * -s: server IP address
+     * -p: server port
+     * -l: launch mode (see @launchMode)
+     * --serialization: serialization type (1 for XML, 2 for JSON)
+     * -m: path for the map file
+     * -c: max cycles
+     * --partially_observable: 1 or true, 0 or false
+     * --ai1: name of the class to be instantiated for player 1
+     * --ai2: name of the class to be instantiated for player 2
+     *
+     * @param args a String array containing command-line arguments
+     * @return
+     */
+    public GameSettings overrideFromArgs(String[] args) {
+        for (int i = args.length; i > 0; i--) {
+            switch (args[i - 1]) {
+                case "-s":
+                    serverAddress = args[i];
+                    break;
+                case "-p":
+                    serverPort = Integer.parseInt(args[i]);
+                    break;
+                case "-l":
+                    launchMode = LaunchMode.valueOf(args[i]);
+                    break;
+                case "--serialization":
+                    serializationType = Integer.parseInt(args[i]);
+                    break;
+                case "-m":
+                    mapLocation = args[i];
+                    break;
+                case "-c":
+                    maxCycles = Integer.parseInt(args[i]);
+                    break;
+                case "--partially_observable":
+                    partiallyObservable = Boolean.parseBoolean(args[i]);
+                    break;
+                case "-u":
+                    uttVersion = Integer.parseInt(args[i]);
+                    break;
+                case "-conflict_policy":
+                    conflictPolicy = Integer.parseInt(args[i]);
+                    break;
+                case "--ai1":
+                    AI1 = args[i];
+                    break;
+                case "--ai2":
+                    AI2 = args[i];
+                    break;
+                default:
+                    break;
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Fetches the default configuration file which will be located in the root direction called
+     * "config.properties".
      */
     public static Properties fetchDefaultConfig() throws IOException {
         Properties prop = new Properties();
@@ -134,13 +214,14 @@ public class GameSettings {
         int uttVersion = readIntegerProperty(prop, "UTT_version", 2);
         int conflictPolicy = readIntegerProperty(prop, "conflict_policy", 1);
         LaunchMode launchMode = LaunchMode.valueOf(prop.getProperty("launch_mode"));
+        boolean includeConstantsInState = Boolean.parseBoolean(prop.getProperty("constants_in_state"));
+        boolean compressTerrain = Boolean.parseBoolean(prop.getProperty("compress_terrain"));
         String AI1 = prop.getProperty("AI1");
         String AI2 = prop.getProperty("AI2");
 
-        return new GameSettings(launchMode, serverAddress, serverPort,
-                                serializationType, mapLocation, maxCycles,
-                                partiallyObservable, uttVersion, conflictPolicy, 
-                                AI1, AI2);
+        return new GameSettings(launchMode, serverAddress, serverPort, serializationType,
+            mapLocation, maxCycles, partiallyObservable, uttVersion, conflictPolicy,
+            includeConstantsInState, compressTerrain, AI1, AI2);
     }
     
     
@@ -154,20 +235,18 @@ public class GameSettings {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("----------Game Settings----------\n");
-        sb.append("Running as Server: ").append( getLaunchMode().toString() ).append("\n");
-        sb.append("Server Address: ").append( getServerAddress() ).append("\n");
-        sb.append("Server Port: ").append( getServerPort() ).append("\n");
-        sb.append("Serialization Type: ").append( getSerializationType()).append("\n");
-        sb.append("Map Location: ").append( getMapLocation() ).append("\n");
-        sb.append("Max Cycles: ").append( getMaxCycles() ).append("\n");
-        sb.append("Partially Observable: ").append( isPartiallyObservable() ).append("\n");
-        sb.append("Rules Version: ").append(getUTTVersion() ).append("\n");
-        sb.append("Conflict Policy: ").append( getConflictPolicy() ).append("\n");
-        sb.append("AI1: ").append( getAI1() ).append("\n");
-        sb.append("AI2: ").append( getAI2() ).append("\n");
-        sb.append("------------------------------------------------");
-        return sb.toString();
+        return "----------Game Settings----------\n" +
+                "Running as Server: " + getLaunchMode().toString() + "\n" +
+                "Server Address: " + getServerAddress() + "\n" +
+                "Server Port: " + getServerPort() + "\n" +
+                "Serialization Type: " + getSerializationType() + "\n" +
+                "Map Location: " + getMapLocation() + "\n" +
+                "Max Cycles: " + getMaxCycles() + "\n" +
+                "Partially Observable: " + isPartiallyObservable() + "\n" +
+                "Rules Version: " + getUTTVersion() + "\n" +
+                "Conflict Policy: " + getConflictPolicy() + "\n" +
+                "AI1: " + getAI1() + "\n" +
+                "AI2: " + getAI2() + "\n" +
+                "------------------------------------------------";
     }
 }
