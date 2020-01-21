@@ -158,7 +158,10 @@ public class Game {
                 w.repaint();
             }
         }
+
         ai1.gameOver(gs.winner());
         ai2.gameOver(gs.winner());
+
+        System.exit(0);
     }
 }
