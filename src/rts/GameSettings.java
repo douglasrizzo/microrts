@@ -18,6 +18,7 @@ public class GameSettings {
                 "-i: update interval between each tick, in milliseconds\n" +
                 "--headless: 1 or true, 0 or false\n" +
                 "--partially_observable: 1 or true, 0 or false\n" +
+                "--e: close window on game end, 1 or true, 0 or false\n" +
                 "-u: unit type table version\n" +
                 "--conflict_policy: which conflict policy to use\n" +
                 "--ai1: name of the class to be instantiated for player 1\n" +
@@ -46,6 +47,7 @@ public class GameSettings {
     private int maxCycles = 5000;
     private int updateInterval = 20;
     private boolean partiallyObservable = false;
+    private boolean closeOnEnd = false;
     private int uttVersion = 1;
     private int conflictPolicy = 1;
 
@@ -58,7 +60,7 @@ public class GameSettings {
 
     public GameSettings(LaunchMode launchMode, String serverAddress, int serverPort,
         int serializationType, String mapLocation, int maxCycles, int updateInterval,
-        boolean partiallyObservable, int uttVersion, int confictPolicy,
+        boolean partiallyObservable, boolean closeOnEnd, int uttVersion, int confictPolicy,
         boolean includeConstantsInState, boolean compressTerrain, boolean headless, String AI1,
         String AI2) {
         this.launchMode = launchMode;
@@ -69,6 +71,7 @@ public class GameSettings {
         this.maxCycles = maxCycles;
         this.updateInterval = updateInterval;
         this.partiallyObservable = partiallyObservable;
+        this.closeOnEnd = closeOnEnd;
         this.uttVersion = uttVersion;
         this.conflictPolicy = confictPolicy;
         this.includeConstantsInState = includeConstantsInState;
@@ -104,6 +107,10 @@ public class GameSettings {
 
     public boolean isPartiallyObservable() {
         return partiallyObservable;
+    }
+
+    public boolean isCloseOnEnd() {
+        return closeOnEnd;
     }
 
     public int getUTTVersion() {
@@ -159,6 +166,7 @@ public class GameSettings {
      * -i: update interval between each tick, in milliseconds
      * --headless: headless: 1 or true, 0 or false
      * --partially_observable: 1 or true, 0 or false
+     * --e: close window on game end, 1 or true, 0 or false
      * -u: unit type table version
      * --conflict_policy: which conflict policy to use
      * --ai1: name of the class to be instantiated for player 1
@@ -196,6 +204,9 @@ public class GameSettings {
                     break;
                 case "--partially_observable":
                     partiallyObservable = args[i].equals("1") || Boolean.parseBoolean(args[i]);
+                    break;
+                case "--e":
+                    closeOnEnd = args[i].equals("1") || Boolean.parseBoolean(args[i]);
                     break;
                 case "-u":
                     uttVersion = Integer.parseInt(args[i]);
@@ -253,6 +264,7 @@ public class GameSettings {
         int maxCycles = readIntegerProperty(prop, "max_cycles", 5000);
         int updateInterval = readIntegerProperty(prop, "update_interval", 20);
         boolean partiallyObservable = Boolean.parseBoolean(prop.getProperty("partially_observable"));
+        boolean closeOnEnd = Boolean.parseBoolean(prop.getProperty("close_on_end"));
         int uttVersion = readIntegerProperty(prop, "UTT_version", 2);
         int conflictPolicy = readIntegerProperty(prop, "conflict_policy", 1);
         LaunchMode launchMode = LaunchMode.valueOf(prop.getProperty("launch_mode"));
@@ -263,7 +275,7 @@ public class GameSettings {
         String AI2 = prop.getProperty("AI2");
 
         return new GameSettings(launchMode, serverAddress, serverPort, serializationType,
-            mapLocation, maxCycles, updateInterval, partiallyObservable, uttVersion, conflictPolicy,
+            mapLocation, maxCycles, updateInterval, partiallyObservable, closeOnEnd, uttVersion, conflictPolicy,
             includeConstantsInState, compressTerrain, headless, AI1, AI2);
     }
     

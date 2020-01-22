@@ -4,12 +4,13 @@ import ai.core.AI;
 import gui.PhysicalGameStatePanel;
 import java.lang.reflect.Constructor;
 import javax.swing.JFrame;
-
 import rts.units.UnitTypeTable;
+import java.awt.event.WindowEvent;
 
 /**
  * Class responsible for creating all objects necessary for a single game and
  * run the main loop of the game until completion.
+ *
  * @author douglasrizzo
  */
 public class Game {
@@ -18,7 +19,7 @@ public class Game {
     protected rts.GameState gs;
     protected AI ai1, ai2;
 
-    private boolean partiallyObservable, headless;
+    private boolean partiallyObservable, headless, closeOnEnd;
     private int maxCycles, updateInterval;
 
     /**
@@ -29,42 +30,44 @@ public class Game {
      * @throws Exception when reading the XML file for the map or instantiating AIs from class names
      */
     public Game(GameSettings gameSettings) throws Exception {
-        this(new UnitTypeTable(gameSettings.getUTTVersion(),
-                        gameSettings.getConflictPolicy()), gameSettings.getMapLocation(),
-                gameSettings.isHeadless(),
-                gameSettings.isPartiallyObservable(), gameSettings.getMaxCycles(), gameSettings.getUpdateInterval(),
-                gameSettings.getAI1(), gameSettings.getAI2());
+        this(new UnitTypeTable(gameSettings.getUTTVersion(), gameSettings.getConflictPolicy()),
+            gameSettings.getMapLocation(), gameSettings.isHeadless(),
+            gameSettings.isPartiallyObservable(), gameSettings.isCloseOnEnd(),
+            gameSettings.getMaxCycles(), gameSettings.getUpdateInterval(), gameSettings.getAI1(),
+            gameSettings.getAI2());
     }
 
+    public Game(UnitTypeTable utt, String mapLocation, boolean headless,
+        boolean partiallyObservable, boolean closeOnEnd, int maxCycles, int updateInterval,
+        String ai1, String ai2) throws Exception {
+        this(utt, mapLocation, headless, partiallyObservable, closeOnEnd, maxCycles, updateInterval);
 
-    public Game(UnitTypeTable utt, String mapLocation, boolean headless, boolean partiallyObservable, int maxCycles,
-                int updateInterval, String ai1, String ai2) throws Exception {
-        this(utt, mapLocation, headless, partiallyObservable, maxCycles, updateInterval);
-
-        Constructor cons1 = Class.forName(ai1)
-                .getConstructor(UnitTypeTable.class);
-        Constructor cons2 = Class.forName(ai2)
-                .getConstructor(UnitTypeTable.class);
+        Constructor cons1 = Class.forName(ai1).getConstructor(UnitTypeTable.class);
+        Constructor cons2 = Class.forName(ai2).getConstructor(UnitTypeTable.class);
 
         this.ai1 = (AI) cons1.newInstance(utt);
         this.ai2 = (AI) cons2.newInstance(utt);
     }
 
-    public Game(UnitTypeTable utt, String mapLocation, boolean headless, boolean partiallyObservable, int maxCycles,
-                int updateInterval, AI ai1, AI ai2) throws Exception {
-        this(utt, mapLocation, headless, partiallyObservable, maxCycles, updateInterval);
+    public Game(UnitTypeTable utt, String mapLocation, boolean headless,
+        boolean partiallyObservable, boolean closeOnEnd, int maxCycles, int updateInterval, AI ai1,
+        AI ai2) throws Exception {
+        this(utt, mapLocation, headless, partiallyObservable, closeOnEnd, maxCycles,
+            updateInterval);
 
         this.ai1 = ai1;
         this.ai2 = ai2;
     }
 
-    private Game(UnitTypeTable utt, String mapLocation, boolean headless, boolean partiallyObservable, int maxCycles,
-                 int updateInterval) throws Exception {
+    private Game(UnitTypeTable utt, String mapLocation, boolean headless,
+        boolean partiallyObservable, boolean closeOnEnd, int maxCycles, int updateInterval)
+        throws Exception {
 
         PhysicalGameState pgs = PhysicalGameState.load(mapLocation, utt);
 
         gs = new GameState(pgs, utt);
         this.partiallyObservable = partiallyObservable;
+        this.closeOnEnd = closeOnEnd;
         this.headless = headless;
         this.maxCycles = maxCycles;
         this.updateInterval = updateInterval;
@@ -72,14 +75,14 @@ public class Game {
 
     /**
      * Create a game from a GameSettings object, but also receiving AI players as parameters
+     *
      * @param gameSettings a GameSettings object, created either by reading a config file or
      *                     through command-ine arguments
-     * @param player_one AI for player one
-     * @param player_two AI for player two
+     * @param player_one   AI for player one
+     * @param player_two   AI for player two
      * @throws Exception when reading the XML file for the map
      */
-    public Game(GameSettings gameSettings, AI player_one, AI player_two)
-        throws Exception {
+    public Game(GameSettings gameSettings, AI player_one, AI player_two) throws Exception {
         UnitTypeTable utt = new UnitTypeTable(gameSettings.getUTTVersion(),
             gameSettings.getConflictPolicy());
         PhysicalGameState pgs = PhysicalGameState.load(gameSettings.getMapLocation(), utt);
@@ -87,6 +90,7 @@ public class Game {
         gs = new GameState(pgs, utt);
 
         partiallyObservable = gameSettings.isPartiallyObservable();
+        closeOnEnd = gameSettings.isCloseOnEnd();
         headless = gameSettings.isHeadless();
         maxCycles = gameSettings.getMaxCycles();
         updateInterval = gameSettings.getUpdateInterval();
@@ -97,6 +101,7 @@ public class Game {
 
     /**
      * run the main loop of the game
+     *
      * @throws Exception
      */
     public void start() throws Exception {
@@ -109,6 +114,7 @@ public class Game {
 
     /**
      * run the main loop of the game
+     *
      * @param w a window where the game will be displayed
      * @throws Exception
      */
@@ -127,9 +133,9 @@ public class Game {
             long timeToNextUpdate = System.currentTimeMillis() + updateInterval;
 
             rts.GameState playerOneGameState =
-                    partiallyObservable ? new PartiallyObservableGameState(gs, 0) : gs;
+                partiallyObservable ? new PartiallyObservableGameState(gs, 0) : gs;
             rts.GameState playerTwoGameState =
-                    partiallyObservable ? new PartiallyObservableGameState(gs, 1) : gs;
+                partiallyObservable ? new PartiallyObservableGameState(gs, 1) : gs;
 
             rts.PlayerAction pa1 = ai1.getAction(0, playerOneGameState);
             rts.PlayerAction pa2 = ai2.getAction(1, playerTwoGameState);
@@ -141,15 +147,17 @@ public class Game {
 
             // if not headless mode, wait and repaint the window
             if (w != null) {
-                if (!w.isVisible())
+                if (!w.isVisible()) {
                     break;
+                }
 
                 // only wait if the AIs have not already consumed more time than the predetermined interval
                 long waitTime = timeToNextUpdate - System.currentTimeMillis();
-                if (waitTime >=0) {
+                if (waitTime >= 0) {
                     try {
                         Thread.sleep(waitTime);
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
@@ -162,6 +170,7 @@ public class Game {
         ai1.gameOver(gs.winner());
         ai2.gameOver(gs.winner());
 
-        System.exit(0);
+        if(w !=null && closeOnEnd)
+            w.dispatchEvent(new WindowEvent(w, WindowEvent.WINDOW_CLOSING));
     }
 }
